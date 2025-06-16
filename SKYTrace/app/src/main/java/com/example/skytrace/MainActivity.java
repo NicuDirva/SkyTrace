@@ -9,6 +9,7 @@ import android.widget.Toast;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -22,10 +23,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap gMap;
+    private final List<Marker> airportMarkers = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
+                if (row == null || row.getCell(0) == null) continue;
 
                 String name = row.getCell(0).getStringCellValue();
                 double latitude = row.getCell(1).getNumericCellValue();
@@ -60,9 +65,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 Marker marker = gMap.addMarker(new MarkerOptions()
                         .position(new LatLng(latitude, longitude))
-                        .title(name));
+                        .title(name)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.airport_marker))
+                        .visible(false)); // inițial invizibil
+
                 marker.setTag(airport);
+                airportMarkers.add(marker); // ✅ adaugă în listă
             }
+
+            gMap.setOnCameraIdleListener(() -> {
+                float zoom = gMap.getCameraPosition().zoom;
+                boolean showMarkers = zoom > 6;
+
+                for (Marker marker : airportMarkers) {
+                    marker.setVisible(showMarkers);
+                }
+            });
 
             gMap.setOnMarkerClickListener(marker -> {
                 Airport airport = (Airport) marker.getTag();
